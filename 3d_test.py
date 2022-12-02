@@ -105,27 +105,27 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
         for i in range(0,n_nodes):
             # fx
             # to Fx
-            current_nodal_forces[i*3+0] = target_resultants[0] / n_nodes 
+            current_nodal_forces[i*3+0] = coefs[0] * target_resultants[0] / n_nodes 
             # to Mz
-            current_nodal_forces[i*3+0] += coefs[0] * target_resultants[5] / 2 / n_nodes * (nodal_coordinates[i][1]-nodes_geom_center[1])/y_max 
+            current_nodal_forces[i*3+0] += coefs[3] * target_resultants[5] / 2 / n_nodes * (nodal_coordinates[i][1]-nodes_geom_center[1])/y_max 
             # to My
-            current_nodal_forces[i*3+0] += coefs[1] * target_resultants[4] / 2 / n_nodes * (nodal_coordinates[i][2]-nodes_geom_center[2])/z_max 
+            current_nodal_forces[i*3+0] += coefs[4] * target_resultants[4] / 2 / n_nodes * (nodal_coordinates[i][2]-nodes_geom_center[2])/z_max 
             
             # fy
             # to Fy
-            current_nodal_forces[i*3+1] = target_resultants[1] / n_nodes 
+            current_nodal_forces[i*3+1] = coefs[1] * target_resultants[1] / n_nodes 
             # to Mz
-            current_nodal_forces[i*3+1] += coefs[2] * target_resultants[5] / 2 / n_nodes * (nodal_coordinates[i][0]-nodes_geom_center[0])/x_max  
+            current_nodal_forces[i*3+1] += coefs[5] * target_resultants[5] / 2 / n_nodes * (nodal_coordinates[i][0]-nodes_geom_center[0])/x_max  
             # to Mx
-            current_nodal_forces[i*3+1] += coefs[3] * target_resultants[3] / 2 / n_nodes * (nodal_coordinates[i][2]-nodes_geom_center[2])/z_max  
+            current_nodal_forces[i*3+1] += coefs[6] * target_resultants[3] / 2 / n_nodes * (nodal_coordinates[i][2]-nodes_geom_center[2])/z_max  
             
             # fz
             # to Fz
-            current_nodal_forces[i*3+2] = target_resultants[2] / n_nodes 
+            current_nodal_forces[i*3+2] = coefs[2] * target_resultants[2] / n_nodes 
             # to Mx
-            current_nodal_forces[i*3+2] += coefs[4] * target_resultants[3] / 2 / n_nodes * (nodal_coordinates[i][1]-nodes_geom_center[1])/y_max  
+            current_nodal_forces[i*3+2] += coefs[7] * target_resultants[3] / 2 / n_nodes * (nodal_coordinates[i][1]-nodes_geom_center[1])/y_max  
             # to My
-            current_nodal_forces[i*3+2] += coefs[5] * target_resultants[4] / 2 / n_nodes * (nodal_coordinates[i][0]-nodes_geom_center[0])/x_max  
+            current_nodal_forces[i*3+2] += coefs[8] * target_resultants[4] / 2 / n_nodes * (nodal_coordinates[i][0]-nodes_geom_center[0])/x_max  
             
         current_resultant = np.dot(mapping_coef_matrix, current_nodal_forces)
         
@@ -143,7 +143,7 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     from functools import partial
 
 
-    init_coef = [1.0] * 6 #* 3**2
+    init_coef = [1.0] * 3**2
     initial_residual = current_residual(mapping_coef_matrix, 
                                         n_nodes, 
                                         nodal_coordinates, 
