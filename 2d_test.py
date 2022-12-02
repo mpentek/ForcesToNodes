@@ -96,7 +96,7 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     from functools import partial
 
 
-    init_coef = [1.0, 1.0, 1.0, 1.0]
+    init_coef = [1.0] * 2**2
     initial_residual = current_residual(mapping_coef_matrix, 
                                         n_nodes, 
                                         nodal_coordinates, 
