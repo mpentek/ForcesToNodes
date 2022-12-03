@@ -112,9 +112,11 @@ case_1 = False
 # various special 3D cases mimicking 2D behaviour -> WORK
 case_2a = False
 case_2b = False
-case_2c = True
+case_2c = False
+# generic case with some 0.0 force and moment entries
+case_3 = True
 
-if [case_1, case_2a, case_2b, case_2c].count(True) != 1:
+if [case_1, case_2a, case_2b, case_2c, case_3].count(True) != 1:
     raise Exception('Only 1 case can be and has to be True! Now "True" are: ' +
                     str([case_1, case_2a, case_2b, case_2c].count(True)))
 
@@ -131,7 +133,10 @@ elif case_2b:
 elif case_2c:
     # CASE 2c: testing 2d-similar case
     input_forces_and_moments = [0.0, 321.2, -512.7, -1545.2, 0.0, 0.0]
-
+elif case_3:
+    # CASE 3: generic with some 0.0 force and moment entries
+    input_forces_and_moments = [451.3, 321.2, 0.0, 0.0, 0.0, 3001.3]
+    
 input_forces_geom_center = [lx/2., ly/2., lz/2.]
 
 #############################
@@ -161,6 +166,11 @@ elif case_2c:
     nodal_coordinates = []
     for y, z in zip(coords_y, coords_z):
         nodal_coordinates.append([lx/2., y, z])
+elif case_3:
+    # CASE 3: generic with some 0.0 force and moment entries
+    nodal_coordinates = []
+    for x, y, z in zip(coords_x, coords_y, coords_z):
+        nodal_coordinates.append([x, y, z])
 
 # INPUT of setup END
 #############################
