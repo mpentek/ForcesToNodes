@@ -18,30 +18,30 @@ def get_random_distributed_series(start, end, n_samples, fix_seed=True):
 
 def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants):
     '''
-    "mapping_coef_matrix" = MCM = the matrix responsible for mapping nodal forces [f_i] to resultants [F_i,M_i]
+    "mapping_coef_matrix" = MCM = the matrix responsible for mapping nodal forces [f_i] to resultants [F_i, M_i]
     which result in (1):
         MCM * transpose[f_i] = transpose[F_i, M_i]
-    
-    MCM is known and can be constructed a-priori based on "nodal_coordinates" and "nodes_geom_center"
-    transpose[F_i, M_i] is provided by the user
-    
-    Transforming the relation (1) into a linear system to solve for the unknown transpose[f_i]
+
+    "MCM" is known and can be constructed a-priori based on "nodal_coordinates" and "nodes_geom_center"
+    "transpose[F_i, M_i]" is provided by the user
+
+    Transforming the relation (1) into a linear system to solve for the unknown "transpose[f_i]"
     by pre-multiplying both sides with the transpose of MCM
-    
+
         transpose(MCM) * MCM * transpose[f_i] = transpsose(MCM) * transpose[F_i, M_i]
 
     Naming and re-arranging:
         LHS = transpose(MCM) * MCM
         RHS = transpose(MCM) * transpose[F_i, M_i]
-    
+
     Solution for the unknown:
         tranpose[f_i] = linalg.solve(LHS, RHS)
     '''
-    
+
     n_nodes = len(nodal_coordinates)
 
     mapping_coef_matrix = np.zeros((3, 2*n_nodes))
-    
+
     # fx contribution
     mapping_coef_matrix[0, 0::2] = 1.0
     # fy contribution
@@ -49,8 +49,8 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     # mz
     for i in range(0, n_nodes):
         # dx, dy
-        dx = nodal_coordinates[i][0]-nodes_geom_center[0]
-        dy = nodal_coordinates[i][1]-nodes_geom_center[1]
+        dx = nodal_coordinates[i][0] - nodes_geom_center[0]
+        dy = nodal_coordinates[i][1] - nodes_geom_center[1]
 
         # mz = dx * fy - dy * fx
         # fx contribution
@@ -141,8 +141,8 @@ for i in range(n_nodes):
     fy = nodal_forces[i*2+1]
 
     # dx, dy
-    dx = nodal_coordinates[i][0]-input_forces_geom_center[0]
-    dy = nodal_coordinates[i][1]-input_forces_geom_center[1]
+    dx = nodal_coordinates[i][0] - input_forces_geom_center[0]
+    dy = nodal_coordinates[i][1] - input_forces_geom_center[1]
 
     # Fx, Fy
     recovered_forces_and_moments[0] += fx
@@ -165,6 +165,9 @@ print("\t" + ', '.join([str(val) for val in recovered_forces_and_moments]))
 
 print("With the geometric center of the node: ")
 print("\t" + ', '.join([str(val) for val in nodes_geom_center]))
+
+print("With the eccentricity of concentrated forces with respect to nodes center: ")
+print("\t" + ', '.join([str(val) for val in eccentricity]))
 
 print("With the difference between input and recovered values: ")
 abs_diff = [abs(a-b) for a, b in zip(input_forces_and_moments,

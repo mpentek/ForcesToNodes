@@ -18,22 +18,22 @@ def get_random_distributed_series(start, end, n_samples, fix_seed=True):
 
 def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants):
     '''
-    "mapping_coef_matrix" = MCM = the matrix responsible for mapping nodal forces [f_i] to resultants [F_i,M_i]
+    "mapping_coef_matrix" = MCM = the matrix responsible for mapping nodal forces [f_i] to resultants [F_i, M_i]
     which result in (1):
         MCM * transpose[f_i] = transpose[F_i, M_i]
-    
-    MCM is known and can be constructed a-priori based on "nodal_coordinates" and "nodes_geom_center"
-    transpose[F_i, M_i] is provided by the user
-    
-    Transforming the relation (1) into a linear system to solve for the unknown transpose[f_i]
+
+    "MCM" is known and can be constructed a-priori based on "nodal_coordinates" and "nodes_geom_center"
+    "transpose[F_i, M_i]" is provided by the user
+
+    Transforming the relation (1) into a linear system to solve for the unknown "transpose[f_i]"
     by pre-multiplying both sides with the transpose of MCM
-    
+
         transpose(MCM) * MCM * transpose[f_i] = transpsose(MCM) * transpose[F_i, M_i]
 
     Naming and re-arranging:
         LHS = transpose(MCM) * MCM
         RHS = transpose(MCM) * transpose[F_i, M_i]
-    
+
     Solution for the unknown:
         tranpose[f_i] = linalg.solve(LHS, RHS)
     '''
@@ -107,15 +107,16 @@ n_total = 25  # 75 #200 #max(nx, ny, nz)**3
 # predefined setup cases
 # NOTE: generic 3D does not work, special cases do work
 # NOTE: choose only one of the following 4 as TRUE, preparing cases
-# generic 3D
+# generic 3D -> DOES NOT WORK
 case_1 = False
-# various special 3D cases mimicking 2D behaviour
+# various special 3D cases mimicking 2D behaviour -> WORK
 case_2a = False
 case_2b = False
 case_2c = True
 
 if [case_1, case_2a, case_2b, case_2c].count(True) != 1:
-    raise Exception('Only 1 case can be and has to be True! Now "True" are: ' + str([case_1, case_2a, case_2b, case_2c].count(True)))
+    raise Exception('Only 1 case can be and has to be True! Now "True" are: ' +
+                    str([case_1, case_2a, case_2b, case_2c].count(True)))
 
 # define the input forces, moments and their point of application
 if case_1:
@@ -209,9 +210,9 @@ for i in range(n_nodes):
     fz = nodal_forces[i*3+2]
 
     # dx, dy, dz
-    dx = nodal_coordinates[i][0]-input_forces_geom_center[0]
-    dy = nodal_coordinates[i][1]-input_forces_geom_center[1]
-    dz = nodal_coordinates[i][2]-input_forces_geom_center[2]
+    dx = nodal_coordinates[i][0] - input_forces_geom_center[0]
+    dy = nodal_coordinates[i][1] - input_forces_geom_center[1]
+    dz = nodal_coordinates[i][2] - input_forces_geom_center[2]
 
     # Fx, Fy, Fz
     recovered_forces_and_moments[0] += fx
@@ -237,6 +238,9 @@ print("\t" + ', '.join([str(val) for val in recovered_forces_and_moments]))
 
 print("With the geometric center of the node: ")
 print("\t" + ', '.join([str(val) for val in nodes_geom_center]))
+
+print("With the eccentricity of concentrated forces with respect to nodes center: ")
+print("\t" + ', '.join([str(val) for val in eccentricity]))
 
 print("With the difference between input and recovered values: ")
 abs_diff = [abs(a-b) for a, b in zip(input_forces_and_moments,
