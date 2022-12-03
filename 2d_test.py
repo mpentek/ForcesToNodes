@@ -19,16 +19,16 @@ def get_random_distributed_series(start, end, n_samples, fix_seed=True):
 def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants):
     '''
     "mapping_coef_matrix" = MCM = the matrix responsible for mapping nodal forces [f_i] to resultants [F_i, M_i]
-    which result in (1):
+    which leads to the relation in (1):
         MCM * transpose[f_i] = transpose[F_i, M_i]
 
     "MCM" is known and can be constructed a-priori based on "nodal_coordinates" and "nodes_geom_center"
-    "transpose[F_i, M_i]" is provided by the user
+    "transpose[F_i, M_i]" is provided by the user as "target_resultants"
 
-    Transforming the relation (1) into a linear system to solve for the unknown "transpose[f_i]"
+    Transforming the relation (1) into a solvable linear system with the unknown "transpose[f_i]"
     by pre-multiplying both sides with the transpose of MCM
 
-        transpose(MCM) * MCM * transpose[f_i] = transpsose(MCM) * transpose[F_i, M_i]
+        transpose(MCM) * MCM * transpose[f_i] = transpose(MCM) * transpose[F_i, M_i]
 
     Naming and re-arranging:
         LHS = transpose(MCM) * MCM
