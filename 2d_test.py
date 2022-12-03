@@ -13,7 +13,7 @@ dx0 = -18.2
 dy0 = -72.0
 
 # sampling points inside the rectangle
-n_total = 75
+n_total = 10 #75
 
 # define the input forces, moments and their point of application
 input_forces_and_moments = [451.3, 321.2, 3001.3]
@@ -49,18 +49,18 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     
     n_nodes = len(nodal_coordinates)    
     
-    #find maximum distance
-    x_max = 0.0
-    y_max = 0.0
+    # #find maximum distance
+    # x_max = 0.0
+    # y_max = 0.0
 
-    for i in range(0,n_nodes):
-        x_max_new = abs(nodal_coordinates[i][0]-nodes_geom_center[0])
-        if x_max_new > x_max:
-            x_max = x_max_new
+    # for i in range(0,n_nodes):
+    #     x_max_new = abs(nodal_coordinates[i][0]-nodes_geom_center[0])
+    #     if x_max_new > x_max:
+    #         x_max = x_max_new
             
-        y_max_new = abs(nodal_coordinates[i][1]-nodes_geom_center[1])
-        if y_max_new > y_max:
-            y_max = y_max_new
+    #     y_max_new = abs(nodal_coordinates[i][1]-nodes_geom_center[1])
+    #     if y_max_new > y_max:
+    #         y_max = y_max_new
     
     mapping_coef_matrix = np.zeros((3,2*n_nodes))
     # fx
@@ -69,72 +69,82 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     mapping_coef_matrix[1,1::2] = 1.0    
     # mz
     for i in range(0,n_nodes):
+        dx = nodal_coordinates[i][0]-nodes_geom_center[0]
+        dy = nodal_coordinates[i][1]-nodes_geom_center[1] 
+        
         # -dy component
-        mapping_coef_matrix[2,2*i+0] = -(nodal_coordinates[i][1]-nodes_geom_center[1])
+        mapping_coef_matrix[2,2*i+0] = -dy
         # dx component
-        mapping_coef_matrix[2,2*i+1] = (nodal_coordinates[i][0]-nodes_geom_center[0]) 
+        mapping_coef_matrix[2,2*i+1] = dx
     
-    def evaluate_current_resultant_and_nodal_forces(mapping_coef_matrix, n_nodes, nodal_coordinates, nodes_geom_center, target_resultants, coefs):
-        current_nodal_forces = np.zeros(2*n_nodes)
-        for i in range(0,n_nodes):
-            # fx
-            current_nodal_forces[i*2+0] = coefs[0] * target_resultants[0] / n_nodes + coefs[1] * target_resultants[2] / 2 / n_nodes * (nodal_coordinates[i][1]-nodes_geom_center[1])/y_max 
-            # fy
-            current_nodal_forces[i*2+1] = coefs[2] * target_resultants[1] / n_nodes + coefs[3] * target_resultants[2] / 2 / n_nodes * (nodal_coordinates[i][0]-nodes_geom_center[0])/x_max  
+    step1 = np.transpose(mapping_coef_matrix)
+    step2 = np.matmul(step1, mapping_coef_matrix)
+    # step3 = np.linalg.inv(step2)
+    # step4 = np.matmul(step3, step2)
+    
+    # def evaluate_current_resultant_and_nodal_forces(mapping_coef_matrix, n_nodes, nodal_coordinates, nodes_geom_center, target_resultants, coefs):
+    #     current_nodal_forces = np.zeros(2*n_nodes)
+    #     for i in range(0,n_nodes):
+    #         # fx
+    #         current_nodal_forces[i*2+0] = coefs[0] * target_resultants[0] / n_nodes + coefs[1] * target_resultants[2] / 2 / n_nodes * (nodal_coordinates[i][1]-nodes_geom_center[1])/y_max 
+    #         # fy
+    #         current_nodal_forces[i*2+1] = coefs[2] * target_resultants[1] / n_nodes + coefs[3] * target_resultants[2] / 2 / n_nodes * (nodal_coordinates[i][0]-nodes_geom_center[0])/x_max  
 
-        current_resultant = np.dot(mapping_coef_matrix, current_nodal_forces)
+    #     current_resultant = np.dot(mapping_coef_matrix, current_nodal_forces)
         
-        return current_resultant, current_nodal_forces
+    #     return current_resultant, current_nodal_forces
     
-    def current_residual(mapping_coef_matrix, n_nodes, nodal_coordinates, nodes_geom_center, target_resultants, coefs):
+    # def current_residual(mapping_coef_matrix, n_nodes, nodal_coordinates, nodes_geom_center, target_resultants, coefs):
         
-        res, forces = evaluate_current_resultant_and_nodal_forces(mapping_coef_matrix, n_nodes, nodal_coordinates, nodes_geom_center, target_resultants, coefs)
+    #     res, forces = evaluate_current_resultant_and_nodal_forces(mapping_coef_matrix, n_nodes, nodal_coordinates, nodes_geom_center, target_resultants, coefs)
     
-        return np.linalg.norm(res - target_resultants)
+    #     return np.linalg.norm(res - target_resultants)
     
-    from scipy.optimize import minimize
-    from functools import partial
+    # from scipy.optimize import minimize
+    # from functools import partial
 
 
-    init_coef = [1.0] * 2**2
-    initial_residual = current_residual(mapping_coef_matrix, 
-                                        n_nodes, 
-                                        nodal_coordinates, 
-                                        nodes_geom_center, 
-                                        target_resultants,
-                                        init_coef)
-    print(init_coef)
-    print(initial_residual)
+    # init_coef = [1.0] * 2**2
+    # initial_residual = current_residual(mapping_coef_matrix, 
+    #                                     n_nodes, 
+    #                                     nodal_coordinates, 
+    #                                     nodes_geom_center, 
+    #                                     target_resultants,
+    #                                     init_coef)
+    # print(init_coef)
+    # print(initial_residual)
     
-    # using partial to fix some parameters for the
-    optimizable_function = partial(current_residual,
-                                    mapping_coef_matrix, 
-                                    n_nodes, 
-                                    nodal_coordinates, 
-                                    nodes_geom_center,
-                                    target_resultants)
+    # # using partial to fix some parameters for the
+    # optimizable_function = partial(current_residual,
+    #                                 mapping_coef_matrix, 
+    #                                 n_nodes, 
+    #                                 nodal_coordinates, 
+    #                                 nodes_geom_center,
+    #                                 target_resultants)
     
-    minimization_result = minimize(optimizable_function,
-                                init_coef,
-                                method='nelder-mead')
+    # minimization_result = minimize(optimizable_function,
+    #                             init_coef,
+    #                             method='nelder-mead')
     
-    final_coef = minimization_result.x
+    # final_coef = minimization_result.x
     
-    final_residual = current_residual(mapping_coef_matrix, 
-                                    n_nodes, 
-                                    nodal_coordinates, 
-                                    nodes_geom_center, 
-                                    target_resultants,
-                                    final_coef)
-    print(final_coef)
-    print(final_residual)
+    # final_residual = current_residual(mapping_coef_matrix, 
+    #                                 n_nodes, 
+    #                                 nodal_coordinates, 
+    #                                 nodes_geom_center, 
+    #                                 target_resultants,
+    #                                 final_coef)
+    # print(final_coef)
+    # print(final_residual)
     
-    res, nodal_forces = evaluate_current_resultant_and_nodal_forces(mapping_coef_matrix, 
-                                                                  n_nodes, 
-                                                                  nodal_coordinates, 
-                                                                  nodes_geom_center, 
-                                                                  target_resultants, 
-                                                                  final_coef)
+    # res, nodal_forces = evaluate_current_resultant_and_nodal_forces(mapping_coef_matrix, 
+    #                                                               n_nodes, 
+    #                                                               nodal_coordinates, 
+    #                                                               nodes_geom_center, 
+    #                                                               target_resultants, 
+    #                                                               final_coef)
+    step3 = np.dot(step1, target_resultants)
+    nodal_forces = np.linalg.solve(step2, step3)
     
     return nodal_forces
 
@@ -150,10 +160,20 @@ nodal_forces = map_forces_to_nodes(nodal_coordinates, input_forces_geom_center, 
 recovered_forces_and_moments = [0., 0., 0.]
 
 for i in range(n_nodes):
-    recovered_forces_and_moments[0] += nodal_forces[i*2+0]
-    recovered_forces_and_moments[1] += nodal_forces[i*2+1]
-
-    recovered_forces_and_moments[2] += (nodal_coordinates[i][0]-input_forces_geom_center[0]) *  nodal_forces[i*2+1] - (nodal_coordinates[i][1]-input_forces_geom_center[1]) * nodal_forces[i*2+0]
+    # fx, fy
+    fx = nodal_forces[i*2+0]
+    fy = nodal_forces[i*2+1]
+    
+    #dx, dy
+    dx = nodal_coordinates[i][0]-input_forces_geom_center[0]
+    dy = nodal_coordinates[i][1]-input_forces_geom_center[1] 
+    
+    #Fx, Fy
+    recovered_forces_and_moments[0] += fx
+    recovered_forces_and_moments[1] += fy
+    
+    # Mz
+    recovered_forces_and_moments[2] += dx *  fy - dy * fx
 
 #############################
 # certain check prints
