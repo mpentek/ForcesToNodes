@@ -58,6 +58,17 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
         # fy contribution
         mapping_coef_matrix[2, 2*i+1] = dx
 
+    mcm_trp = np.transpose(mapping_coef_matrix)
+
+    # rank for MCM and MCM extended with target_resultants must be the same for a solution to exist
+    rankA = np.linalg.matrix_rank(mapping_coef_matrix)
+    extendedM = np.zeros((mapping_coef_matrix.shape[0],mapping_coef_matrix.shape[1]+1))
+    extendedM[:,:-1] = mapping_coef_matrix
+    extendedM[:,-1] = target_resultants
+    rankB = np.linalg.matrix_rank(extendedM)
+    print(rankA == rankB)
+    # here it is true, so there is a unique solution
+    
     '''
     Solving an underdetermined system, where we have in 2D 3 equations
     and the number of unknowns equals the total nodal forces, 2x number of nodes
@@ -68,8 +79,6 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     
     There are either infinite solutions or none
     '''
-
-    mcm_trp = np.transpose(mapping_coef_matrix)
 
     # Strategy 1
     # multipliying the linear system from the left with the transposed
@@ -139,9 +148,11 @@ applied_at_location = [-78.12, 8.33]
 
 input_forces_geom_center = [lx/2., ly/2.]
 input_forces_and_moments = []
+# Fx, Fy, Fy
 input_forces_and_moments.extend(applied_force)
-input_forces_and_moments.append((applied_at_location[1]-input_forces_geom_center[1])*applied_force[0] - (
-    applied_at_location[0]-input_forces_geom_center[0])*applied_force[1])
+# Mz = Dx * Fy - Dy * Fx
+input_forces_and_moments.append((applied_at_location[0]-input_forces_geom_center[0])*applied_force[1] - (
+    applied_at_location[1]-input_forces_geom_center[1])*applied_force[0])
 
 
 #############################
