@@ -73,13 +73,68 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
         # fy contribution
         mapping_coef_matrix[5, 3*i+1] = dx
 
+    # rank for MCM and MCM extended with target_resultants must be the same for a solution to exist
+    rankA = np.linalg.matrix_rank(mapping_coef_matrix)
+    extendedM = np.zeros((mapping_coef_matrix.shape[0],mapping_coef_matrix.shape[1]+1))
+    extendedM[:,:-1] = mapping_coef_matrix
+    extendedM[:,-1] = target_resultants
+    rankB = np.linalg.matrix_rank(extendedM)
+    print(rankA == rankB)
+    # here rankA < rankB, so the problem is underdetermined and inconsistent
+    
     mcm_trp = np.transpose(mapping_coef_matrix)
-    LHS = np.matmul(mcm_trp, mapping_coef_matrix)
 
-    RHS = np.dot(mcm_trp, target_resultants)
-    nodal_forces = np.linalg.solve(LHS, RHS)
+    '''
+    Solving an underdetermined system, where we have in 3D 6 equations
+    and the number of unknowns equals the total nodal forces, 3x number of nodes
 
-    return nodal_forces
+    Typical problem of least squares fitting of underdetermined systems
+
+    https://pages.cs.wisc.edu/~amos/412/lecture-notes/lecture17.pdf
+
+    There are either infinite solutions or none
+    '''
+
+
+    # Strategy 1
+    # multipliying the linear system from the left with the transposed
+    # A * x = b -> A.T * A * x = A.T * b -> solve for x
+    # pre-multiplying with A.T will increase the size of the system to be solved
+    nodal_forces_1 = np.linalg.solve(
+        np.matmul(mcm_trp, mapping_coef_matrix), np.dot(mcm_trp, target_resultants))
+    # checks
+    recovered_resultants_1 = np.dot(mapping_coef_matrix, nodal_forces_1)
+    residual_1 = np.subtract(recovered_resultants_1, target_resultants)
+    norm_of_residual_1 = np.linalg.norm(residual_1)
+    print(norm_of_residual_1)
+
+    # Strategy 2
+    # substituting for a modified unknown
+    # A * x = b -> A (A.T * x_mod) = b -> solve for x_mod
+    # post-multiplying with A.T will decrease the size of the system to be solved
+    x_mod = np.linalg.solve(
+        np.matmul(mapping_coef_matrix, mcm_trp), target_resultants)
+    # recover original unknown
+    nodal_forces_2 = np.dot(mcm_trp, x_mod)
+    # checks
+    recovered_resultants_2 = np.dot(mapping_coef_matrix, nodal_forces_2)
+    residual_2 = np.subtract(recovered_resultants_2, target_resultants)
+    norm_of_residual_2 = np.linalg.norm(residual_2)
+    print(norm_of_residual_2)
+
+    # Strategy 3
+    # let numpy solve the least square fitting problem
+    nodal_forces_3 = np.linalg.lstsq(mapping_coef_matrix, target_resultants)[0]
+    # checks
+    recovered_resultants_3 = np.dot(mapping_coef_matrix, nodal_forces_3)
+    residual_3 = np.subtract(recovered_resultants_3, target_resultants)
+    norm_of_residual_3 = np.linalg.norm(residual_3)
+    print(norm_of_residual_3)
+
+    diff_12 = max(abs(np.subtract(nodal_forces_1, nodal_forces_2)))
+    diff_23 = max(abs(np.subtract(nodal_forces_2, nodal_forces_3)))
+
+    return nodal_forces_1
 
 # OWN function definition END
 #############################
@@ -100,16 +155,33 @@ dy0 = 0.0#-72.0
 dz0 = 0.0#23.3
 
 # sampling points inside the rectangle
-nx = 7
-ny = 9
-nz = 11
-n_total = 50  # 75 #200 #max(nx, ny, nz)**3
+# nx = 7
+# ny = 9
+# nz = 11
+n_total = 250
 
 # define the input forces, moments and their point of application
-input_forces_and_moments = [451.3, 321.2, -512.7, -1545.2, -2117.8, 3001.3]
-    
 input_forces_geom_center = [lx/2., ly/2., lz/2.]
 
+# create a realistic moment based on force and lever arm
+applied_force = [451.3, 321.2, -512.7]
+applied_at_location = [-78.12, 8.33, 1.52]
+
+input_forces_and_moments = []
+# Fx, Fy, Fz
+input_forces_and_moments.extend(applied_force)
+# Mx = Dy * Fz - Dz * Fy
+input_forces_and_moments.append((applied_at_location[1]-input_forces_geom_center[1])*applied_force[2] - (
+    applied_at_location[2]-input_forces_geom_center[2])*applied_force[1])
+# My = Dz * Fx - Dx * Fz
+input_forces_and_moments.append((applied_at_location[2]-input_forces_geom_center[2])*applied_force[0] - (
+    applied_at_location[0]-input_forces_geom_center[0])*applied_force[2])
+# Mz = Dx * Fy - Dy * Fx
+input_forces_and_moments.append((applied_at_location[0]-input_forces_geom_center[0])*applied_force[1] - (
+    applied_at_location[1]-input_forces_geom_center[1])*applied_force[0])
+   
+   
+   
 #############################
 # generate nodal coordinates
 

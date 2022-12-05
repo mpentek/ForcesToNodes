@@ -154,10 +154,10 @@ dy0 = -72.0
 dz0 = 23.3
 
 # sampling points inside the rectangle
-nx = 7
-ny = 9
-nz = 11
-n_total = 3  # 75 #200 #max(nx, ny, nz)**3
+# nx = 7
+# ny = 9
+# nz = 11
+n_total = 250
 
 input_forces_geom_center = [lx/2., ly/2., lz/2.]
 
