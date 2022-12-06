@@ -157,7 +157,10 @@ dz0 = 23.3
 # nx = 7
 # ny = 9
 # nz = 11
-n_total = 250
+
+# NOTE: very interesting, 250 point with the fixed seed for the random
+# generation leads to a singular matrix
+n_total = 100 #250
 
 input_forces_geom_center = [lx/2., ly/2., lz/2.]
 
