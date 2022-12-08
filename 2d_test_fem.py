@@ -39,18 +39,18 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
         k_rr = 3*E*I/L
         
         k_elem_local = np.array([
-            [ k_u,   0.0,   0.0, -k_u,   0.0],
-            [ 0.0,  k_vv, -k_vr,  0.0, -k_vv],
-            [ 0.0, -k_vr,  k_rr,  0.0,  k_vr],
-            [-k_u,   0.0,   0.0,  k_u,   0.0],
-            [ 0.0, -k_vv,  k_vr,  0.0,  k_vv]])
+            [ k_u,   0.0,   0.0, -k_u,    0.0],
+            [ 0.0,  k_vv,   k_vr,  0.0,  -k_vv],
+            [ 0.0,  k_vr,   k_rr,  0.0,  -k_vr],
+            [-k_u,   0.0,   0.0,  k_u,    0.0],
+            [ 0.0, -k_vv,  -k_vr,  0.0,   k_vv]])
         
         t_elem = np.array([
-            [ c_val, -s_val, 0.0,   0.0,    0.0],
-            [ s_val,  c_val, 0.0,   0.0,    0.0],
+            [ c_val, s_val, 0.0,   0.0,    0.0],
+            [ -s_val,  c_val, 0.0,   0.0,    0.0],
             [   0.0,   0.0,  1.0,   0.0,    0.0],
-            [   0.0,   0.0,  0.0,  c_val, -s_val],
-            [   0.0,   0.0,  0.0,  s_val,  c_val]])
+            [   0.0,   0.0,  0.0,  c_val, s_val],
+            [   0.0,   0.0,  0.0,  -s_val,  c_val]])
         
         k_elem_global = np.matmul(np.matmul(np.transpose(t_elem), k_elem_local), t_elem)
         
@@ -114,8 +114,6 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
         raise Exception("Norm of residual too large, check algorithm!")
 
 
-
-
     ##########################
     # check based on nodal position
     n_nodes = len(nodal_coordinates)
@@ -137,12 +135,13 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
         mapping_coef_matrix[2, 2*i+0] = -dy
         # fy contribution
         # NOTE:check why this needs a sign flip to be correct, a sign-flip might be needed somewhere else!!!
-        mapping_coef_matrix[2, 2*i+1] = -dx #dx
+        mapping_coef_matrix[2, 2*i+1] = dx #dx
 
     recovered_resultants = np.dot(mapping_coef_matrix, nodal_forces)
     residual = np.subtract(recovered_resultants, target_resultants)
     norm_of_residual = np.linalg.norm(residual)
-    print(norm_of_residual)
+    if norm_of_residual > 1e-4:
+        raise Exception("Norm of residual too large, check algorithm!")
 
     return nodal_forces
 
