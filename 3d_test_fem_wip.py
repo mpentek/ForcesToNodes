@@ -124,6 +124,7 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
         # print(check_symmetric(k_elem_global))
         
         # add diagonally-clustered entries corresponding to the starting node - i.e center node - of the beam
+        # forces and moments
         for i in range(6):
             for j in range(6):
                 k_total_global[i,j] += k_elem_global[i,j]
@@ -132,6 +133,7 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
                 # print()
         
         # add diagonally-clustered entries corresponding to the end node of of the beam
+        # only forces
         for i in range(3):
             for j in range(3):
                 k_total_global[6 + idx*3 + i, 6 + idx*3 + j] += k_elem_global[6+i,6+j]
@@ -158,8 +160,8 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     # by a beam
     stiffness_matrix = setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center)
     
-    # calculate the 3 deformations - 2 translations and 1 rotation - of the center node
-    # using the displacement method in 2D
+    # calculate the 6 deformations - 3 translations and 3 rotation - of the center node
+    # using the displacement method in 3D
     # solved by reduction, only the center node is unconstrained
     center_node_deformations = np.linalg.solve(stiffness_matrix[:6,:6], target_resultants)
     
