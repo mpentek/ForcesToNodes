@@ -173,7 +173,7 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     
     # recover all forces
     all_forces = np.dot(stiffness_matrix,all_deformations)
-    # first 3 are the recovered resultants
+    # first 6 are the recovered resultants
     recovered_resultants = all_forces[:6]
     # the remaining are the actual unknowns of the problem
     # return the reaction forces from each pinned node
