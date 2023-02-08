@@ -113,9 +113,6 @@ def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants)
     if norm_of_residual > 1e-4:
         raise Exception("Norm of residual too large, check algorithm!")
 
-
-
-
     ##########################
     # check based on nodal position
     n_nodes = len(nodal_coordinates)
