@@ -15,11 +15,8 @@ def get_random_distributed_series(start, end, n_samples, fix_seed=True):
     x = (end - start) * x + start
     return x
 
-def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
-    E = 10000.0
-    A = 100.0
-    I = 1000.0
-    
+def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=100.0, I=1000.0):
+   
     def get_length(p1, p2):
         # http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-1/
         length = ((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2 + (p2[2]-p1[2])**2)**0.5
@@ -32,12 +29,12 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
     x_dir = np.array([1,0,0])
     y_dir = np.array([0,1,0])
     z_dir = np.array([0,0,1])
-    orig_syst = np.array([0,0,0])
+    # orig_syst = np.array([0,0,0])
     
-    import logging
-    logger = logging.getLogger(__name__)
+    # import logging
+    # logger = logging.getLogger(__name__)
     
-    from commonlibs.math.vectors import unit_vector, direction_cosine, vector_rejection
+    from commonlibs.math.vectors import unit_vector, direction_cosine#, vector_rejection
     
     for idx, node in enumerate(nodal_coordinates):
         L = get_length(nodes_geom_center, node)
@@ -77,9 +74,12 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
             [-k_u,   0.0,   0.0,  0.0,   0.0,   0.0,    k_u,   0.0,   0.0],
             [ 0.0, -k_vv,   0.0,  0.0,   0.0, -k_vr,    0.0,  k_vv,   0.0],
             [ 0.0,   0.0, -k_vv,  0.0,  k_vr,   0.0,    0.0,   0.0,  k_vv]])
+
+        # print(np.array_str(k_elem_local, precision=2, suppress_small=True))
+        # print()
         
-        def check_symmetric(a, rtol=1e-05, atol=1e-08):
-            return np.allclose(a, a.T, rtol=rtol, atol=atol) 
+        # def check_symmetric(a, rtol=1e-05, atol=1e-08):
+        #     return np.allclose(a, a.T, rtol=rtol, atol=atol) 
         # print(check_symmetric(k_elem_local))
         
         # t_elem = np.array([
@@ -92,14 +92,23 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
         # using the syntax from here https://github.com/airinnova/framat/blob/4177a95b4ed8d95a8330365e32ca13ac9ef24640/src/framat/_element.py
         # and here https://www.engissol.com/Downloads/Technical%20Notes%20and%20examples.pdf
         x_elem = unit_vector(node - nodes_geom_center)
-         
+        
+        # take global z_dir as global up 
         if abs(1 - abs(np.dot(x_elem, z_dir))) <= 1e-10:
-            logger.error("up-direction and local x-axis are parallel")
-            raise ValueError("up-direction and local x-axis are parallel")
+            # up-direction and local x-axis are parallel
+            # taking global y_dir as y_elem
+            y_elem = unit_vector(np.copy(y_dir))
+        else:
+            y_elem = unit_vector(np.cross(z_dir, x_elem))
+        z_elem = unit_vector(np.cross(x_elem, y_elem))
+        
+        # print(np.cross(x_dir, y_dir))
+        # print(np.cross(y_dir, x_dir))
+        # print()
 
-        z_elem = unit_vector(vector_rejection(z_dir, x_elem))
-        y_elem = unit_vector(np.cross(z_elem, x_elem))
-             
+        # print(direction_cosine(x_dir,x_dir))
+        # print()
+        
         # ===== Transformation matrix =====
         lx = direction_cosine(x_elem, x_dir)
         ly = direction_cosine(y_elem, x_dir)
@@ -110,6 +119,13 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
         nx = direction_cosine(x_elem, z_dir)
         ny = direction_cosine(y_elem, z_dir)
         nz = direction_cosine(z_elem, z_dir)
+        # print(lx, ly, lz)
+        # print(mx, my, mz)
+        # print(nx, ny, nz)
+        # print()
+        # print(L, lx, mx, nx)
+        # print(y_elem)
+        # print()
 
         T3 = np.array([[lx, mx, nx], [ly, my, ny], [lz, mz, nz]])
         # print(np.array_str(T3, precision=2, suppress_small=True))
@@ -122,6 +138,9 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
         
         k_elem_global = np.matmul(np.matmul(np.transpose(t_elem), k_elem_local), t_elem)
         # print(check_symmetric(k_elem_global))
+        
+        # print(np.array_str(k_elem_global, precision=2, suppress_small=True))
+        # print()
         
         # add diagonally-clustered entries corresponding to the starting node - i.e center node - of the beam
         # forces and moments
@@ -151,19 +170,54 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center):
                 
                 # print(np.array_str(k_total_global[0:12,0:12], precision=2, suppress_small=True))
                 # print()
+
+        
+        
+    # print(np.array_str(k_total_global, precision=2, suppress_small=True))
+    # print()
     
     return k_total_global
 
 def map_forces_to_nodes(nodal_coordinates, nodes_geom_center, target_resultants):
-
-    # setup a stiffness matrix assuming the center node being connected to all other nodes
-    # by a beam
-    stiffness_matrix = setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center)
     
-    # calculate the 6 deformations - 3 translations and 3 rotation - of the center node
-    # using the displacement method in 3D
-    # solved by reduction, only the center node is unconstrained
+    ########
+    # test values - checked with Stiff3D
+    #check 1
+    # nodal_coordinates= [
+    #     np.array([5.0,0.0,0.0]),
+    #     np.array([0.0,5.0,0.0]),
+    #     np.array([0.0,0.0,5.0]),
+    #     np.array([5.0,5.0,5.0])]
+
+    #check 2
+    nodal_coordinates= [
+        np.array([5.0,0.0,0.0]),
+        np.array([0.0,5.0,0.0]),
+        np.array([0.0,0.0,5.0]),
+        np.array([5.0,5.0,5.0]),
+        np.array([-1.0,-3.0,-7.0])]
+    
+    nodes_geom_center = np.array([0.0,0.0,0.0])
+    target_resultants = np.array([11.0,22.0,33.0,44.0,55.0,66.0])
+    stiffness_matrix = setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=1, A=1000, I=1000)
+
+    ########
+    # # setup a stiffness matrix assuming the center node being connected to all other nodes
+    # # by a beam
+    # stiffness_matrix = setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center)
+    
+    # # calculate the 6 deformations - 3 translations and 3 rotation - of the center node
+    # # using the displacement method in 3D
+    # # solved by reduction, only the center node is unconstrained
+    
+    ########
+    # solve
     center_node_deformations = np.linalg.solve(stiffness_matrix[:6,:6], target_resultants)
+
+    print(np.array_str(stiffness_matrix[:6,:6], precision=2, suppress_small=True))
+    print(np.array_str(target_resultants, precision=2, suppress_small=True))
+    print(np.array_str(center_node_deformations, precision=5, suppress_small=True))
+    print()
     
     # setup the deformation vector - apart from the center node deformations
     # all are zero translations due to the pinned support
@@ -255,7 +309,7 @@ dz0 = 23.3
 
 # NOTE: very interesting, 250 point with the fixed seed for the random
 # generation leads to a singular matrix
-n_total = 91#100 #250
+n_total = 25#100 #250
 
 input_forces_geom_center = [lx/2., ly/2., lz/2.]
 
