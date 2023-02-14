@@ -82,7 +82,7 @@ for i in range(nr_target_resultants):
     
     residual = np.subtract(total_resultants, target_resultants)
     norm_of_residual = np.linalg.norm(residual)
-    print("Residual check for nodal force resultans: " , str(norm_of_residual))
+    print("Residual check for nodal force resultants: " , str(norm_of_residual))
     if norm_of_residual > 1e-4:
         raise Exception("Norm of residual too large, check algorithm!") 
     
