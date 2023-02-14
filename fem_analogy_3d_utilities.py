@@ -12,11 +12,8 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
     def get_direction_cosine(v1, v2):
         return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
-    def get_length(p1, p2):
-        # http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-1/
-        length = ((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2 + (p2[2]-p1[2])**2)**0.5
-        
-        return length
+    def get_length(p1, p2):       
+        return np.linalg.norm(np.subtract(p2, p1))
     
     k_total_global =np.zeros((6 + 3*len(nodal_coordinates), 6 + 3*len(nodal_coordinates)))
     

@@ -8,7 +8,7 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
     
     def get_length_and_angle_coefs(p1, p2):
         # http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-1/
-        length = ((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)**0.5
+        length = np.linalg.norm(np.subtract(p2, p1))
         cos_val = (p2[0]-p1[0]) / length
         sin_val = (p2[1]-p1[1]) / length
         
