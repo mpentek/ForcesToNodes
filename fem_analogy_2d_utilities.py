@@ -31,11 +31,11 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
         k_elem_local = np.array([
             # first node - displacement and rotation
             [ k_u,   0.0,   0.0, -k_u,    0.0],
-            [ 0.0,  k_vv,   k_vr,  0.0,  -k_vv],
-            [ 0.0,  k_vr,   k_rr,  0.0,  -k_vr],
+            [ 0.0,  k_vv,   k_vr,  0.0, -k_vv],
+            [ 0.0,  k_vr,   k_rr,  0.0, -k_vr],
             # second node - only displacements
             [-k_u,   0.0,   0.0,  k_u,    0.0],
-            [ 0.0, -k_vv,  -k_vr,  0.0,   k_vv]])
+            [ 0.0, -k_vv,  -k_vr,  0.0,  k_vv]])
         
         t_elem = np.array([
             [  c_val, s_val, 0.0,   0.0,    0.0],

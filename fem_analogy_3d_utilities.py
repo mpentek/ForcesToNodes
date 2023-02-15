@@ -38,16 +38,16 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
         
         k_elem_local = np.array([
             # first node - displacements and rotations
-            [ k_u,   0.0,   0.0,  0.0,   0.0,   0.0,   -k_u,   0.0,   0.0],
-            [ 0.0,  k_vv,   0.0,  0.0,   0.0,  k_vr,    0.0, -k_vv,   0.0],
-            [ 0.0,   0.0,  k_vv,  0.0, -k_vr,   0.0,    0.0,   0.0, -k_vv],
-            [ 0.0,   0.0,   0.0,  0.0,   0.0,   0.0,    0.0,   0.0,   0.0],
-            [ 0.0,   0.0, -k_vr,  0.0,  k_rr,   0.0,    0.0,   0.0,  k_vr],
-            [ 0.0,  k_vr,   0.0,  0.0,   0.0,  k_rr,    0.0, -k_vr,   0.0],
+            [ k_u,   0.0,   0.0,  0.0,   0.0,   0.0, -k_u,   0.0,   0.0],
+            [ 0.0,  k_vv,   0.0,  0.0,   0.0,  k_vr,  0.0, -k_vv,   0.0],
+            [ 0.0,   0.0,  k_vv,  0.0, -k_vr,   0.0,  0.0,   0.0, -k_vv],
+            [ 0.0,   0.0,   0.0,  0.0,   0.0,   0.0,  0.0,   0.0,   0.0],
+            [ 0.0,   0.0, -k_vr,  0.0,  k_rr,   0.0,  0.0,   0.0,  k_vr],
+            [ 0.0,  k_vr,   0.0,  0.0,   0.0,  k_rr,  0.0, -k_vr,   0.0],
             # second node - only displacements
-            [-k_u,   0.0,   0.0,  0.0,   0.0,   0.0,    k_u,   0.0,   0.0],
-            [ 0.0, -k_vv,   0.0,  0.0,   0.0, -k_vr,    0.0,  k_vv,   0.0],
-            [ 0.0,   0.0, -k_vv,  0.0,  k_vr,   0.0,    0.0,   0.0,  k_vv]])
+            [-k_u,   0.0,   0.0,  0.0,   0.0,   0.0,  k_u,   0.0,   0.0],
+            [ 0.0, -k_vv,   0.0,  0.0,   0.0, -k_vr,  0.0,  k_vv,   0.0],
+            [ 0.0,   0.0, -k_vv,  0.0,  k_vr,   0.0,  0.0,   0.0,  k_vv]])
        
         # using the syntax from here https://github.com/airinnova/framat/blob/4177a95b4ed8d95a8330365e32ca13ac9ef24640/src/framat/_element.py
         # and here https://www.engissol.com/Downloads/Technical%20Notes%20and%20examples.pdf
