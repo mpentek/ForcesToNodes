@@ -1,6 +1,6 @@
 
 import numpy as np
-from fem_analogy_3d_utilities import setup_fem_beam_analogy, map_forces_to_nodes, check_resultant 
+from fem_analogy_3d_utilities import setup_fem_beam_analogy, map_forces_to_nodes, check_resultant, ERR_ABS_TOL
 
 # based on the example in stiff3d_ex1.xlsm
 
@@ -36,6 +36,6 @@ center_node_deformations_stiff3d_reference = np.array([5.80255483459737,
 residual = np.subtract(center_node_deformations, center_node_deformations_stiff3d_reference)
 norm_of_residual = np.linalg.norm(residual)
 print("Residual check for deformations: " , str(norm_of_residual))
-if norm_of_residual > 1e-4:
+if norm_of_residual > ERR_ABS_TOL:
     raise Exception("Norm of residual too large, check algorithm!")
 print()
