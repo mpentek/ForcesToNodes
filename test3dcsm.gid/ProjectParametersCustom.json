@@ -4,7 +4,7 @@
         "parallel_type" : "OpenMP",
         "echo_level"    : 1,
         "start_time"    : 0.0,
-        "end_time"      : 0.25
+        "end_time"      : 0.5
     },
     "solver_settings"  : {
         "time_stepping"                        : {
@@ -50,19 +50,21 @@
                 "value"           : [0.0,0.0,0.0]
             }
         }],
-        "loads_process_list"       : [{
-            "python_module" : "assign_vector_by_direction_to_condition_process",
-            "kratos_module" : "KratosMultiphysics",
-            "check"         : "DirectorVectorNonZero direction",
-            "process_name"  : "AssignVectorByDirectionToConditionProcess",
-            "Parameters"    : {
-                "model_part_name" : "Structure.PointLoad3D_structure",
-                "variable_name"   : "POINT_LOAD",
-                "interval"        : [0.0,"End"],
-                "modulus"         : "15.0*z*t",
-                "direction"       : [1.0,2.0,0.0]
-            }
-        }],
+        "loads_process_list"       : [
+        //     {
+        //     "python_module" : "assign_vector_by_direction_to_condition_process",
+        //     "kratos_module" : "KratosMultiphysics",
+        //     "check"         : "DirectorVectorNonZero direction",
+        //     "process_name"  : "AssignVectorByDirectionToConditionProcess",
+        //     "Parameters"    : {
+        //         "model_part_name" : "Structure.PointLoad3D_structure",
+        //         "variable_name"   : "POINT_LOAD",
+        //         "interval"        : [0.0,"End"],
+        //         "modulus"         : "15.0*z*t",
+        //         "direction"       : [1.0,2.0,0.0]
+        //     }
+        // }
+        ],
         "list_other_processes"     : [{
             "python_module" : "apply_level_force_process",
             "process_name"  : "ApplyLevelForceProcess",
@@ -71,12 +73,13 @@
                 "input_folder" : "ascii_input",
                 "input_file_prefix" : "FluidModelPart.Drag_structure_level_force_",
                 "input_file_extension": ".dat",
+                "rampup_time_upper_limit" : 10.0,
                 "nr_input_intervals": 3,
                 "column_ids" : [7,8,9,10,11,12],
                 "swap_sign" : true,
                 "write_output_file"     : true,
                 "output_file_settings": {
-                     "output_path": "ascii_output/level_force/"
+                     "output_path": "ascii_output"
                 }
             }
         }]
@@ -90,7 +93,7 @@
             "Parameters"    : {
                 "model_part_name"                             : "Structure",
                 "output_control_type"                         : "step",
-                "output_interval"                             : 1,
+                "output_interval"                             : 5,
                 "file_format"                                 : "binary",
                 "output_precision"                            : 2,
                 "output_sub_model_parts"                      : false,
