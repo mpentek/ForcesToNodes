@@ -16,16 +16,17 @@ import KratosMultiphysics
 import KratosMultiphysics.StructuralMechanicsApplication as KSM
 from KratosMultiphysics.time_based_ascii_file_writer_utility import TimeBasedAsciiFileWriterUtility
 import math
-
+import numpy as np
+import os
 
 def Factory(params, Model):
     if(type(params) != KratosMultiphysics.Parameters):
         raise Exception(
             'expected input shall be a Parameters object, encapsulating a json string')
-    return ComputeLevelForceProcess(Model, params["Parameters"])
+    return ApplyLevelForceProcess(Model, params["Parameters"])
 
 
-class ComputeLevelForceProcess(KratosMultiphysics.Process):
+class ApplyLevelForceProcess(KratosMultiphysics.Process):
     '''
     Assign level forces and recovers them (body-attached forces)
     for a model part with the appropriate 1D condition for POINT_LOAD
@@ -39,153 +40,81 @@ class ComputeLevelForceProcess(KratosMultiphysics.Process):
         default_settings = KratosMultiphysics.Parameters("""
             {
                 "model_part_name"       : "",
-                "interval"              : [0.0, 1e30],
-                "start_point"           : [],
-                "end_point"             : [],
-                "intervals"             : 1,
-                "include_endpoints"     : true,
-                "print_to_screen"       : false,
-                "print_format"          : ".8f",
+                "input_folder" : "",
+                "input_file_prefix" : "",
+                "input_file_extension": ".dat",
+                "nr_input_intervals": 1,
+                "column_ids" : [],
+                "swap_sign" : false,
                 "write_output_file"     : true,
                 "output_file_settings"  : {}
             }
             """)
-
-        # Detect 'End' as a tag and replace it by a large number
-        if(params.Has('interval')):
-            if(params['interval'][1].IsString()):
-                if(params['interval'][1].GetString() == 'End'):
-                    params['interval'][1].SetDouble(1e30)
-                else:
-                    raise Exception('The second value of interval can be \'End\' or a number, interval currently:' +
-                                    params['interval'].PrettyPrintJsonString())
 
         params.ValidateAndAssignDefaults(default_settings)
 
         # modal part params
         self.model_part_name = params['model_part_name'].GetString()
         self.model_part = Model[self.model_part_name]
-        self.interval = params["interval"].GetVector()
-        self.print_to_screen = params['print_to_screen'].GetBool()
-        self.write_output_file = params['write_output_file'].GetBool()
-        self.format = params["print_format"].GetString()
-
-        # creating parametrized and final start-center-end point for intervals
-        start_point_position = params["start_point"].GetVector()
-        if start_point_position.Size() != 3:
-            raise Exception(
-                'The start point position has to be provided with 3 coordinates!')
-        end_point_position = params["end_point"].GetVector()
-        if end_point_position.Size() != 3:
-            raise Exception(
-                'The end point position has to be provided with 3 coordinates!')
-        number_of_sampling_intervals = params["intervals"].GetInt()
-
-        if number_of_sampling_intervals <= 0:
-            raise Exception(
-                'The number of sampling points has to be larger than 0!')
+        
+        input_folder = params['input_folder'].GetString()
+        input_file_prefix = params['input_file_prefix'].GetString()
+        input_file_extension = params['input_file_extension'].GetString()
+        nr_input_intervals = params['nr_input_intervals'].GetInt()
+        column_ids = params['column_ids'].GetVector()
+        swap_sign = params['swap_sign'].GetBool()
+        if swap_sign:
+            sign_multiplier = -1
         else:
-            include_endpoints = params["include_endpoints"].GetBool()
+            sign_multiplier = 1
 
-            # setup the parametric space for the internal points on the line
-            lower_bound = 0.0
-            upper_bound = 1.0
+        force_labels = ['fx','fy','fz','mx','my','mz']
 
-            my_param = [1.0] * (number_of_sampling_intervals)
-            if include_endpoints:
-
-                my_param[0] = 0.5
-                my_param[-1] = 0.5
-
-                parametrized_internal_points = [lower_bound + x*(upper_bound-lower_bound)/(
-                    number_of_sampling_intervals-1) for x in range(number_of_sampling_intervals + 1)]
-
-            else:
-
-                parametrized_internal_points = [lower_bound + x*(upper_bound-lower_bound)/(
-                    number_of_sampling_intervals-1) for x in range(number_of_sampling_intervals)]
-
-            parametrized_internal_points = [0.0] * (len(my_param)+1)
-
-            for i in range(len(my_param)):
-                for j in range(i+1):
-                    parametrized_internal_points[i+1] += my_param[j]
-
-            parametrized_internal_points = [
-                x / parametrized_internal_points[-1] for x in parametrized_internal_points]
-
-            # determining the positions of the output points
-            direction_vector = [
-                x - y for x, y in zip(end_point_position, start_point_position)]
-
-            current_positions = []
-            for k in range(len(parametrized_internal_points)):
-                current_positions.append(
-                    [x + parametrized_internal_points[k]*y for x, y in zip(start_point_position, direction_vector)])
-
-            self.levels = {}
-            for idx in range(len(current_positions)-1):
-                self.levels[idx] = {}
-                self.levels[idx]['start'] = current_positions[idx]
-                self.levels[idx]['end'] = current_positions[idx+1]
-
-                # first interval
-                if (include_endpoints and idx == 0):
-                    self.levels[idx]['center'] = [
-                        x1 for x1 in self.levels[idx]['start']]
-                elif (include_endpoints and idx == (len(current_positions)-1)-1):
-                    self.levels[idx]['center'] = [
-                        x2 for x2 in self.levels[idx]['end']]
-                else:
-                    self.levels[idx]['center'] = [
-                        (x1+x2)/2 for x1, x2 in zip(self.levels[idx]['start'], self.levels[idx]['end'])]
-
-                self.levels[idx]['output_file'] = None
-
-                for idx in range(len(self.levels)):
-                    self.levels[idx]['node_ids'] = []
-                    for node in self.model_part.GetCommunicator().LocalMesh().Nodes:
-                        # PMT here only comparing Z coordinate
-                        if idx == 0:
-                            if self.levels[idx]['start'][2] <= node.Z0 and node.Z0 <= self.levels[idx]['end'][2]:
-                                self.levels[idx]['node_ids'].append(node.Id)
-                        else:
-                            if self.levels[idx]['start'][2] < node.Z0 and node.Z0 <= self.levels[idx]['end'][2]:
-                                self.levels[idx]['node_ids'].append(node.Id)
-
-        # initialize output files for each level
         if (self.model_part.GetCommunicator().MyPID() == 0):
-            if (self.write_output_file):
+            level_forces = {}
+            accum_level_nodes = 0
+            
+            for l_id in range(nr_input_intervals):
+                level_forces[l_id] = {}
+                file_name = os.path.join(input_folder, input_file_prefix + str(l_id) + input_file_extension)
+                
+                # read in time series    
+                level_forces[l_id]['time'] = np.loadtxt(file_name, usecols =(0,))
+                # read force and moment input
+                for c_id in range(column_ids.Size()):
+                    level_forces[l_id][force_labels[c_id]] = np.multiply(np.loadtxt(file_name,
+                                                                        usecols =(int(column_ids[c_id])),), sign_multiplier)
 
-                # create/check/assign file name prefix
-                output_file_name_prefix = params["model_part_name"].GetString() + "_level_force_"
+                # adding descriptors
+                line_nr = 0
+                descriptive_lines = []
+                with open(file_name, 'r+') as fp:
+                    while line_nr < 4:
+                        line = fp.readline()
+                        descriptive_lines.append(line.replace(',','').replace('\n','').split(' '))
+                        line_nr += 1
 
-                file_handler_params = KratosMultiphysics.Parameters(
-                    params["output_file_settings"])
-
-                if file_handler_params.Has("file_name"):
-                    warn_msg = 'Unexpected user-specified entry found in "output_file_settings": {"file_name": '
-                    warn_msg += '"' + \
-                        file_handler_params["file_name"].GetString(
-                        ) + '"}\n'
-                    warn_msg += 'Using this specififed file name instead of the default "' + \
-                        output_file_name_prefix + '"'
-                    KratosMultiphysics.Logger.PrintWarning(
-                        "ComputeLevelForceProcess", warn_msg)
-
-                    output_file_name_prefix = file_handler_params["file_name"].GetString() + "_level_force_"
-                else:
-                    file_handler_params.AddEmptyValue("file_name")
-
-                for idx in range(len(self.levels)):
-                    # file for each level
-                    file_handler_params["file_name"].SetString(
-                            output_file_name_prefix + str(idx) + '.dat')
-                    file_header = self._GetFileHeader(idx)
-
-                    self.levels[idx]['output_file'] = TimeBasedAsciiFileWriterUtility(self.model_part,
-                                                                                      file_handler_params, file_header).file
-
+                if not l_id == int(descriptive_lines[0][-1]):
+                    raise Exception('Mismatch between intended and read level id!')
+                level_forces[l_id]['start_id'] = [float(val) for val in descriptive_lines[1][2:]]
+                level_forces[l_id]['center_id'] = [float(val) for val in descriptive_lines[2][2:]]
+                level_forces[l_id]['end_id'] = [float(val) for val in descriptive_lines[3][2:]]
+                
+                # adding node IDs from model part
+                level_forces[l_id]['node_ids'] = []
+                level_forces[l_id]['node_coords'] = []
+                for node in self.model_part.Nodes:
+                    if level_forces[l_id]['start_id'][-1] <= node.Z0 and node.Z0 < level_forces[l_id]['end_id'][-1]:
+                        level_forces[l_id]['node_ids'].append(node.Id)
+                        level_forces[l_id]['node_coords'].append([node.X0, node.Y0, node.Z0])
+                accum_level_nodes += len(level_forces[l_id]['node_ids'])       
+                print()
+                
+            myval = len(self.model_part.Nodes)
+            if not accum_level_nodes == len(self.model_part.Nodes):
+                raise Exception('Mismatch between accumulated and total number of nodes!')
+            print()
+            
     def ExecuteFinalizeSolutionStep(self):
 
         current_time = self.model_part.ProcessInfo[KratosMultiphysics.TIME]
