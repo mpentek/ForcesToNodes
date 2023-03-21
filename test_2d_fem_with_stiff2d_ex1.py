@@ -21,6 +21,7 @@ nodes_geom_center = np.array([-60.0,0.0])
 
 stiffness_matrix = setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=1.0, A=1000.0, I=1000.0)
 
+# NOTE: needs a sign-flip for the moment or the rotation to compare with Stiff2D, as this has x-z as axes instead of x-y
 target_resultants = np.array([20.0, -50.0, -50.0])
 
 # nodal forces need to be calculates for each given set of target resultant    
@@ -31,6 +32,7 @@ print()
 
 center_node_deformations_stiff2d_reference = np.array([0.854314633420702,
                                                        -1.43822407811824,
+# NOTE: needs a sign-flip for the moment or the rotation to compare with Stiff2D, as this has x-z as axes instead of x-y
                                                       -0.279933175826514])
 residual = np.subtract(center_node_deformations, center_node_deformations_stiff2d_reference)
 norm_of_residual = np.linalg.norm(residual)
