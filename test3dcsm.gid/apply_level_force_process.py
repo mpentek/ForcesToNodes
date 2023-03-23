@@ -179,7 +179,7 @@ class ApplyLevelForceProcess(KratosMultiphysics.Process):
         current_time = self.model_part.ProcessInfo[KratosMultiphysics.TIME]
         time_fctr = 1.0
         if current_time <= self.time_limit:
-            time_factor = current_time/self.time_limit
+            time_fctr = current_time/self.time_limit
             
         step = self.model_part.ProcessInfo[KratosMultiphysics.STEP]
         
@@ -245,7 +245,6 @@ class ApplyLevelForceProcess(KratosMultiphysics.Process):
                                                 b in zip(res_labels, output_vals)])
                     self._PrintToScreen(result_msg, l_id)
 
-                    print()
                 if (self.write_output_file):
                     self.level_forces[l_id]['output_file'].write(
                         ' '.join(output_vals) + '\n')
@@ -280,9 +279,14 @@ class ApplyLevelForceProcess(KratosMultiphysics.Process):
             fb[1] += nodal_force[1]
             fb[2] += nodal_force[2]
 
-            x = node.X - self.level_forces[l_id]['center_coords'][0]
-            y = node.Y - self.level_forces[l_id]['center_coords'][1]
-            z = node.Z - self.level_forces[l_id]['center_coords'][2]
+            # using the undeformed coordinates
+            # the mesh in CSM typically deforms (Lagrangian)
+            # the mesh in CFD typically does not deform (Eulerian)
+            # for a very generic formulation we would need to update the mapping matrix with the new nodal positions
+            # this is only relevant for large and highly nonlinear deformations
+            x = node.X0 - self.level_forces[l_id]['center_coords'][0]
+            y = node.Y0 - self.level_forces[l_id]['center_coords'][1]
+            z = node.Z0 - self.level_forces[l_id]['center_coords'][2]
             mb[0] += y * nodal_force[2] - z * nodal_force[1]
             mb[1] += z * nodal_force[0] - x * nodal_force[2]
             mb[2] += x * nodal_force[1] - y * nodal_force[0]

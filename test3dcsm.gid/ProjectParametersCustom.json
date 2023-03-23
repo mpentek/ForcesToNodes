@@ -8,7 +8,7 @@
     },
     "solver_settings"  : {
         "time_stepping"                        : {
-            "time_step_table" : [[0.0,0.05]]
+            "time_step_table" : [[0.0,0.02]]
         },
         "solver_type"                          : "Dynamic",
         "model_part_name"                      : "Structure",
@@ -86,7 +86,7 @@
                 "input_folder" : "ascii_input",
                 "input_file_prefix" : "FluidModelPart.Drag_structure_level_force_",
                 "input_file_extension": ".dat",
-                "rampup_time_upper_limit" : 10.0,
+                "rampup_time_upper_limit" : 0.1,
                 "nr_input_intervals": 3,
                 "column_ids" : [7,8,9,10,11,12],
                 "swap_sign" : true,
