@@ -30,7 +30,7 @@ class ApplyLevelForceProcess(KratosMultiphysics.Process):
                 "input_folder" : "",
                 "input_file_prefix" : "",
                 "input_file_extension": ".dat",
-                "rampup_time_upper_limit" : 1e30,
+                "rampup_time_upper_limit" : 0.0,
                 "nr_input_intervals": 1,
                 "column_ids" : [],
                 "swap_sign" : false,
