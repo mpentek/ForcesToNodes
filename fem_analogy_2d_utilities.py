@@ -6,7 +6,8 @@ import numpy as np
 
 DIMENSION = 2
 DOFS_PER_NODE = 3
-ERR_ABS_TOL = 1e-10
+ERR_ABS_TOL = 1e-5
+ERR_REL_TOL = 1e-10
 
 def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=100.0, I=1000.0):
     
@@ -23,28 +24,41 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
     for idx, node in enumerate(nodal_coordinates):
         L, c_val, s_val = get_length_and_angle_coefs(nodes_geom_center, node)
         
-        k_u = E*A/L 
-        k_vv = 3*E*I/L**3
-        k_vr = 3*E*I/L**2
-        k_rr = 3*E*I/L
-        
-        k_elem_local = np.array([
-            # first node - displacement and rotation
-            [ k_u,   0.0,   0.0, -k_u,    0.0],
-            [ 0.0,  k_vv,   k_vr,  0.0, -k_vv],
-            [ 0.0,  k_vr,   k_rr,  0.0, -k_vr],
-            # second node - only displacements
-            [-k_u,   0.0,   0.0,  k_u,    0.0],
-            [ 0.0, -k_vv,  -k_vr,  0.0,  k_vv]])
-        
-        t_elem = np.array([
-            [  c_val, s_val, 0.0,   0.0,    0.0],
-            [ -s_val, c_val, 0.0,   0.0,    0.0],
-            [    0.0,   0.0, 1.0,   0.0,    0.0],
-            [    0.0,   0.0, 0.0,  c_val, s_val],
-            [    0.0,   0.0, 0.0, -s_val, c_val]])
-        
-        k_elem_global = np.matmul(np.matmul(np.transpose(t_elem), k_elem_local), t_elem)
+        if not L < ERR_ABS_TOL:
+            
+            k_u = E*A/L 
+            k_vv = 3*E*I/L**3
+            k_vr = 3*E*I/L**2
+            k_rr = 3*E*I/L
+            
+            k_elem_local = np.array([
+                # first node - displacement and rotation
+                [ k_u,   0.0,   0.0, -k_u,    0.0],
+                [ 0.0,  k_vv,   k_vr,  0.0, -k_vv],
+                [ 0.0,  k_vr,   k_rr,  0.0, -k_vr],
+                # second node - only displacements
+                [-k_u,   0.0,   0.0,  k_u,    0.0],
+                [ 0.0, -k_vv,  -k_vr,  0.0,  k_vv]])
+            
+            t_elem = np.array([
+                [  c_val, s_val, 0.0,   0.0,    0.0],
+                [ -s_val, c_val, 0.0,   0.0,    0.0],
+                [    0.0,   0.0, 1.0,   0.0,    0.0],
+                [    0.0,   0.0, 0.0,  c_val, s_val],
+                [    0.0,   0.0, 0.0, -s_val, c_val]])
+            
+            k_elem_global = np.matmul(np.matmul(np.transpose(t_elem), k_elem_local), t_elem)
+            
+        else:
+            # node too close to center node
+            msg = "Node center :" + ','.join(str(val) for val in nodes_geom_center)
+            msg += " too close to considered node: " + ','.join(str(val) for val in node)
+            msg += " with distance: " + str(L)
+            msg += ". Adding with zero contribution."
+            print(msg)        
+            
+            # adding element stiffness matrix to result in zero contributions
+            k_elem_global = np.zeros([int(DOFS_PER_NODE*2-DOFS_PER_NODE/2),int(DOFS_PER_NODE*2-DOFS_PER_NODE/2)])
         
         # add diagonally-clustered entries corresponding to the starting node - i.e center node - of the beam
         # forces and moments
@@ -64,6 +78,9 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
                 k_total_global[DOFS_PER_NODE + idx*DIMENSION + i, j] += k_elem_global[DOFS_PER_NODE+i,j]
                 # upper diagonal
                 k_total_global[j, DOFS_PER_NODE + idx*DIMENSION + i] += k_elem_global[j,DOFS_PER_NODE+i]
+
+    if np.isnan(k_total_global).any():
+        raise Exception("NaN in k_total_global, check algorithm!")
     
     return k_total_global
 
@@ -97,10 +114,14 @@ def map_forces_to_nodes(stiffness_matrix, target_resultants):
     nodal_forces = -all_forces[DOFS_PER_NODE:]
     
     # check target forces in the center node
-    residual = np.subtract(target_resultants, recovered_resultants)
-    norm_of_residual = np.linalg.norm(residual)
-    print("Residual check in map_forces_to_nodes: " , str(norm_of_residual))
-    if norm_of_residual > ERR_ABS_TOL:
+    residual = np.subtract(target_resultants, recovered_resultants)   
+    abs_norm_of_residual = np.linalg.norm(residual)
+    rel_norm_of_residual = abs_norm_of_residual/np.linalg.norm(target_resultants)
+    msg = "Residual check in map_forces_to_nodes"
+    msg += "\n\tabsolute residual: " + str(abs_norm_of_residual)
+    msg += "\n\trelative residual: " + str(rel_norm_of_residual)
+    print(msg)
+    if (abs_norm_of_residual > ERR_ABS_TOL or rel_norm_of_residual > ERR_REL_TOL):
         raise Exception("Norm of residual too large, check algorithm!")
 
     return nodal_forces, center_node_deformations
@@ -131,12 +152,16 @@ def check_resultant(nodal_coordinates, nodes_geom_center, nodal_forces, target_r
 
     recovered_resultants = np.dot(mapping_coef_matrix, nodal_forces)
     residual = np.subtract(recovered_resultants, target_resultants)
-    norm_of_residual = np.linalg.norm(residual)
-    print("Residual check in check_resultants: " , str(norm_of_residual))
-    if norm_of_residual > ERR_ABS_TOL:
+    abs_norm_of_residual = np.linalg.norm(residual)
+    rel_norm_of_residual = abs_norm_of_residual/np.linalg.norm(target_resultants)
+    msg = "Residual check in check_resultants"
+    msg += "\n\tabsolute residual: " + str(abs_norm_of_residual)
+    msg += "\n\trelative residual: " + str(rel_norm_of_residual)
+    print(msg)
+    if (abs_norm_of_residual > ERR_ABS_TOL or rel_norm_of_residual > ERR_REL_TOL):
         raise Exception("Norm of residual too large, check algorithm!")
 
-    return not(norm_of_residual > ERR_ABS_TOL)
+    return not(abs_norm_of_residual > ERR_ABS_TOL)
 
 if __name__ == "__main__":
     # generating nodal coordinates and target resultants
