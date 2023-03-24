@@ -84,8 +84,8 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
             
         else:
             # node too close to center node
-            msg = "Node center :" + ','.join(str(val) for val in nodes_geom_center)
-            msg += " too close to considered node: " + ','.join(str(val) for val in node)
+            msg = "Node center :" + ', '.join(str(val) for val in nodes_geom_center)
+            msg += " too close to considered node: " + ', '.join(str(val) for val in node)
             msg += " with distance: " + str(L)
             msg += ". Adding with zero contribution."
             print(msg)        
