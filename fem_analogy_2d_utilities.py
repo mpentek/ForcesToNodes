@@ -161,7 +161,7 @@ def check_resultant(nodal_coordinates, nodes_geom_center, nodal_forces, target_r
     if (abs_norm_of_residual > ERR_ABS_TOL or rel_norm_of_residual > ERR_REL_TOL):
         raise Exception("Norm of residual too large, check algorithm!")
 
-    return not(abs_norm_of_residual > ERR_ABS_TOL)
+    return not((abs_norm_of_residual > ERR_ABS_TOL) or (rel_norm_of_residual > ERR_REL_TOL))
 
 if __name__ == "__main__":
     # generating nodal coordinates and target resultants
