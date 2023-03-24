@@ -91,7 +91,7 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
             print(msg)        
             
             # adding element stiffness matrix to result in zero contributions
-            k_elem_global = np.zeros([int(DOFS_PER_NODE*2-DOFS_PER_NODE/2),int(DOFS_PER_NODE*2-DOFS_PER_NODE/2)])
+            k_elem_global = np.zeros([DOFS_PER_NODE*2-3,DOFS_PER_NODE*2-3])
         
         # add diagonally-clustered entries corresponding to the starting node - i.e center node - of the beam
         # forces and moments
