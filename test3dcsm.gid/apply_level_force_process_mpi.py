@@ -119,7 +119,7 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
                     self.level_forces[l_id]['node_ids_local'].append(node.Id)
                     self.level_forces[l_id]['node_coords_local'].append([node.X0, node.Y0, node.Z0])
                 
-            self.level_forces[l_id]['size_from_ranks'] = np.cumsum(self.data_comm.GatherInts([len(self.level_forces[l_id]['node_ids_local'])], self.main_rank))
+            self.level_forces[l_id]['sizes_from_ranks'] = np.cumsum(self.data_comm.GatherInts([len(self.level_forces[l_id]['node_ids_local'])], self.main_rank))
 
             # NOTE using numpy a.flatten()
             self.level_forces[l_id]['node_coords_global'] = np.array(np.concatenate(self.data_comm.GathervDoubles(np.array(self.level_forces[l_id]['node_coords_local']).flatten(), self.main_rank)))
@@ -187,7 +187,6 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
             for l_id in range(self.nr_input_intervals): 
                 self.level_forces[l_id]['stiffness_matrix'] = None 
 
-
     def ExecuteInitializeSolutionStep(self):
         
         # NOTE: check if whe should base it on time
@@ -215,7 +214,10 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
                 perform_check = check_resultant(self.level_forces[l_id]['stacked_node_coords_global'], self.level_forces[l_id]['center_coords'], nodal_forces_global, target_resultants)
                 print("Perform final check: ", str(perform_check))
                 
-                data_to_scatter = np.split(nodal_forces_global, self.level_forces[l_id]['size_from_ranks'][:-1])
+                # splitting using a multiple of 3 as sizes_from_ranks represent the numbering of nodes
+                # coordinates have 3 components more
+                data_to_scatter = np.split(nodal_forces_global, 3*self.level_forces[l_id]['sizes_from_ranks'][:-1])
+            
             else:
                 data_to_scatter = []
                 
@@ -232,11 +234,16 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
             nodal_forces_local = self.data_comm.ScattervDoubles(data_to_scatter, self.main_rank)
             
             nodal_point_load_val = KratosMultiphysics.Vector(3)            
-            for c, node_id in enumerate(self.level_forces[l_id]['node_ids_local']):
+            for c, node_id in enumerate(self.level_forces[l_id]['node_ids_local']):                
                 for i in range(nodal_point_load_val.Size()):
                     nodal_point_load_val[i] = nodal_forces_local[c*3 + i]
                 # for StructuralMechanics: each node has a corresponding 1D condition, which has POINT_LOAD as an assigned value
-                self.model_part.Conditions[node_id].SetValue(KSM.POINT_LOAD, nodal_point_load_val)
+                # NOTE: this does not work with MPI as conditions are partitioned differently to nodes
+                # setting through conditions
+                # self.model_part.Conditions[node_id].SetValue(KSM.POINT_LOAD, nodal_point_load_val)
+                # NOTE: this works with MPI
+                # setting through nodes
+                self.model_part.Nodes[node_id].SetSolutionStepValue(KSM.POINT_LOAD, 0, nodal_point_load_val)
             
     def ExecuteFinalizeSolutionStep(self):
 
@@ -293,7 +300,12 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
             # nodal_force = (-1) * node.GetSolutionStepValue(KratosMultiphysics.REACION, 0)
             
             # for StructuralMechanics: each node has a corresponding 1D condition, which has POINT_LOAD as an assigned value
-            nodal_force = self.model_part.Conditions[node_id].GetValue(KSM.POINT_LOAD)
+            # NOTE: this does not work with MPI as conditions are partitioned differently to nodes
+            # getting through conditions
+            # nodal_force = self.model_part.Conditions[node_id].GetValue(KSM.POINT_LOAD)
+            # NOTE: this works with MPI
+            # getting through nodes
+            nodal_force = self.model_part.Nodes[node_id].GetSolutionStepValue(KSM.POINT_LOAD)
 
             # summing up nodal contributions to get resultant for model_part
             fb[0] += nodal_force[0]
