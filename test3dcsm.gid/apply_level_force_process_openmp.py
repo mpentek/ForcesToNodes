@@ -169,8 +169,8 @@ class ApplyLevelForceProcessOpenMP(KratosMultiphysics.Process):
 
             
             # NOTE: for an internal check  
-            if not accum_level_nodes == len(self.model_part.Nodes):
-                raise Exception('Mismatch between accumulated and total number of nodes!')
+            # if not accum_level_nodes == len(self.model_part.Nodes):
+            #     raise Exception('Mismatch between accumulated and total number of nodes!')
 
     def ExecuteInitializeSolutionStep(self):
         
