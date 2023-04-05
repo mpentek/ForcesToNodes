@@ -78,9 +78,10 @@
             //         "entity_type"              : "condition"
             //     }
             // },
-            {
-            "python_module" : "apply_level_force_process",
-            "process_name"  : "ApplyLevelForceProcess",
+        // OpenMP
+        {
+            "python_module" : "apply_level_force_process_openmp",
+            "process_name"  : "ApplyLevelForceProcessOpenMP",
             "Parameters"    : {
                 "model_part_name" : "Structure.PointLoad3D_structure", 
                 "input_folder" : "ascii_input",
@@ -92,10 +93,29 @@
                 "swap_sign" : true,
                 "write_output_file"     : true,
                 "output_file_settings": {
-                     "output_path": "ascii_output"
+                        "output_path": "ascii_output_openmp"
                 }
             }
         }
+        // als MPI
+        // {
+        //     "python_module" : "apply_level_force_process_mpi",
+        //     "process_name"  : "ApplyLevelForceProcessMPI",
+        //     "Parameters"    : {
+        //         "model_part_name" : "Structure.PointLoad3D_structure", 
+        //         "input_folder" : "ascii_input",
+        //         "input_file_prefix" : "FluidModelPart.Drag_structure_level_force_",
+        //         "input_file_extension": ".dat",
+        //         "rampup_time_upper_limit" : 0.1,
+        //         "nr_input_intervals": 3,
+        //         "column_ids" : [7,8,9,10,11,12],
+        //         "swap_sign" : true,
+        //         "write_output_file"     : true,
+        //         "output_file_settings": {
+        //              "output_path": "ascii_output_mpi"
+        //         }
+        //     }
+        // }
     ]
     },
     "output_processes" : {
