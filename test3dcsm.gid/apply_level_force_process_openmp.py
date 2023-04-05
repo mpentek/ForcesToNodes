@@ -215,8 +215,13 @@ class ApplyLevelForceProcessOpenMP(KratosMultiphysics.Process):
                     for i in range(nodal_point_load_val.Size()):
                         nodal_point_load_val[i] = nodal_forces[c*3 + i]
                     # for StructuralMechanics: each node has a corresponding 1D condition, which has POINT_LOAD as an assigned value
-                    self.model_part.Conditions[node_id].SetValue(KSM.POINT_LOAD, nodal_point_load_val)
-            
+                    # NOTE: this does not work with MPI as conditions are partitioned differently to nodes
+                    # setting through conditions
+                    # self.model_part.Conditions[node_id].SetValue(KSM.POINT_LOAD, nodal_point_load_val)
+                    # NOTE: this works with MPI
+                    # setting through nodes
+                    self.model_part.Nodes[node_id].SetSolutionStepValue(KSM.POINT_LOAD, 0, nodal_point_load_val)
+                            
     def ExecuteFinalizeSolutionStep(self):
 
         current_time = self.model_part.ProcessInfo[KratosMultiphysics.TIME]
@@ -272,7 +277,12 @@ class ApplyLevelForceProcessOpenMP(KratosMultiphysics.Process):
             # nodal_force = (-1) * node.GetSolutionStepValue(KratosMultiphysics.REACION, 0)
             
             # for StructuralMechanics: each node has a corresponding 1D condition, which has POINT_LOAD as an assigned value
-            nodal_force = self.model_part.Conditions[node_id].GetValue(KSM.POINT_LOAD)
+            # NOTE: this does not work with MPI as conditions are partitioned differently to nodes
+            # getting through conditions
+            # nodal_force = self.model_part.Conditions[node_id].GetValue(KSM.POINT_LOAD)
+            # NOTE: this works with MPI
+            # getting through nodes
+            nodal_force = self.model_part.Nodes[node_id].GetSolutionStepValue(KSM.POINT_LOAD)
 
             # summing up nodal contributions to get resultant for model_part
             fb[0] += nodal_force[0]
