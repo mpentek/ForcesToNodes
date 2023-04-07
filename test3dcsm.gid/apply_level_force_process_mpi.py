@@ -106,17 +106,17 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
                
             ###
             # NOTE: the following block does not take care properly of MPI
-            # nodes (with IDs and coordinates) are local to ranks
+            # nodes (with pointers and coordinates) are local to ranks
             # the stiffnes matrix needs to be assembled globally
             ###
             
-            # adding node IDs from model part
+            # adding nodes from model part
             # by filtering Z coordinates - here along the height
-            self.level_forces[l_id]['node_ids_local'] = []
+            self.level_forces[l_id]['nodes_local'] = []
             self.level_forces[l_id]['node_coords_local'] = []
             for node in self.model_part.Nodes:
                 if self.level_forces[l_id]['start_coords'][-1] <= node.Z0 and node.Z0 < self.level_forces[l_id]['end_coords'][-1]:
-                    self.level_forces[l_id]['node_ids_local'].append(node.Id)
+                    self.level_forces[l_id]['nodes_local'].append(node)
                     self.level_forces[l_id]['node_coords_local'].append([node.X0, node.Y0, node.Z0])
                 
             self.level_forces[l_id]['sizes_from_ranks'] = np.cumsum(self.data_comm.GatherInts([len(self.level_forces[l_id]['node_ids_local'])], self.main_rank))
@@ -145,7 +145,6 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
                 # as the setup_fem_beam_analogy requires a specific format
                 self.level_forces[l_id]['stacked_node_coords_global'] = self.level_forces[l_id]['node_coords_global'].reshape((int(self.level_forces[l_id]['node_coords_global'].shape[0]/3),3))
                 
-                # self.level_forces[l_id]['stiffness_matrix'] = setup_fem_beam_analogy(self.level_forces[l_id]['node_coords_global'],
                 self.level_forces[l_id]['stiffness_matrix'] = setup_fem_beam_analogy(self.level_forces[l_id]['stacked_node_coords_global'], 
                                                                                 self.level_forces[l_id]['center_coords']) 
 
@@ -226,27 +225,16 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
                 
             #############
             # apply as in Kratos
-            
-            ###
-            # NOTE: the following block does not take care properly of MPI
-            # nodal forces can be calculated glocally on rank 0
-            # the result and distribution needs to happen for each node on respective ranks
-            # so local node IDs
-            ###
-            
+                        
             nodal_forces_local = self.data_comm.ScattervDoubles(data_to_scatter, self.main_rank)
             
             nodal_point_load_val = KratosMultiphysics.Vector(3)            
-            for c, node_id in enumerate(self.level_forces[l_id]['node_ids_local']):                
+            #for c, node_id in enumerate(self.level_forces[l_id]['node_ids_local']): 
+            for c, node in enumerate(self.level_forces[l_id]['nodes_local']):                
                 for i in range(nodal_point_load_val.Size()):
                     nodal_point_load_val[i] = nodal_forces_local[c*3 + i]
-                # for StructuralMechanics: each node has a corresponding 1D condition, which has POINT_LOAD as an assigned value
-                # NOTE: this does not work with MPI as conditions are partitioned differently to nodes
-                # setting through conditions
-                # self.model_part.Conditions[node_id].SetValue(KSM.POINT_LOAD, nodal_point_load_val)
-                # NOTE: this works with MPI
-                # setting through nodes
-                self.model_part.Nodes[node_id].SetSolutionStepValue(KSM.POINT_LOAD, 0, nodal_point_load_val)
+                
+                node.SetSolutionStepValue(KSM.POINT_LOAD, 0, nodal_point_load_val)
             
     def ExecuteFinalizeSolutionStep(self):
 
@@ -295,20 +283,8 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
         fb = [0.0, 0.0, 0.0]
         mb = [0.0, 0.0, 0.0]
 
-        for node_id in self.level_forces[l_id]['node_ids_local']:
-            node = self.model_part.Nodes[node_id]
-
-            # for FluidDynamics: each node has REACTION as a solution step value
-            # sign is flipped to go from reaction to action -> force
-            # nodal_force = (-1) * node.GetSolutionStepValue(KratosMultiphysics.REACION, 0)
-            
-            # for StructuralMechanics: each node has a corresponding 1D condition, which has POINT_LOAD as an assigned value
-            # NOTE: this does not work with MPI as conditions are partitioned differently to nodes
-            # getting through conditions
-            # nodal_force = self.model_part.Conditions[node_id].GetValue(KSM.POINT_LOAD)
-            # NOTE: this works with MPI
-            # getting through nodes
-            nodal_force = self.model_part.Nodes[node_id].GetSolutionStepValue(KSM.POINT_LOAD)
+        for node in self.level_forces[l_id]['nodes_local']:
+            nodal_force = node.GetSolutionStepValue(KSM.POINT_LOAD)
 
             # summing up nodal contributions to get resultant for model_part
             fb[0] += nodal_force[0]
