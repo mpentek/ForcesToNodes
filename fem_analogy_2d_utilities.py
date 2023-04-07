@@ -18,7 +18,17 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
         sin_val = (p2[1]-p1[1]) / length
         
         return length, cos_val, sin_val
+    # initial checks
+    if len(nodal_coordinates) == 0:
+        raise Exception("nodal_coordinates has no elements, check algorithm or setup!")
+    elif len(nodal_coordinates) == 1:
+        dist, _, _ = get_length_and_angle_coefs(nodal_coordinates[0], nodes_geom_center)
+        if dist < ERR_ABS_TOL:
+            raise Exception("Only one node in nodal_coordinates and this has the same location as nodes_geom_center, check algorithm or setup!")
+        else:
+            raise Warning("Only one node in nodal_coordinates!")
     
+    # main algorithm    
     k_total_global =np.zeros((DOFS_PER_NODE + DIMENSION*len(nodal_coordinates), DOFS_PER_NODE + DIMENSION*len(nodal_coordinates)))
     
     for idx, node in enumerate(nodal_coordinates):
@@ -79,9 +89,10 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
                 # upper diagonal
                 k_total_global[j, DOFS_PER_NODE + idx*DIMENSION + i] += k_elem_global[j,DOFS_PER_NODE+i]
 
+    # final checks
     if np.isnan(k_total_global).any():
-        raise Exception("NaN in k_total_global, check algorithm!")
-    
+        raise Exception("NaN in k_total_global, check algorithm or setup!")
+       
     return k_total_global
 
 def map_forces_to_nodes(stiffness_matrix, target_resultants):
