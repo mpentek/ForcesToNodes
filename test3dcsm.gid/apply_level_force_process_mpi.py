@@ -119,12 +119,12 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
                     self.level_forces[l_id]['nodes_local'].append(node)
                     self.level_forces[l_id]['node_coords_local'].append([node.X0, node.Y0, node.Z0])
                 
-            self.level_forces[l_id]['sizes_from_ranks'] = np.cumsum(self.data_comm.GatherInts([len(self.level_forces[l_id]['node_ids_local'])], self.main_rank))
+            self.level_forces[l_id]['sizes_from_ranks'] = np.cumsum(self.data_comm.GatherInts([len(self.level_forces[l_id]['nodes_local'])], self.main_rank))
 
             # NOTE using numpy a.flatten()
             self.level_forces[l_id]['node_coords_global'] = np.array(np.concatenate(self.data_comm.GathervDoubles(np.array(self.level_forces[l_id]['node_coords_local']).flatten(), self.main_rank)))
 
-            #accum_level_nodes += len(self.level_forces[l_id]['node_ids'])       
+            #accum_level_nodes += len(self.level_forces[l_id]['nodes'])       
             
             # # NOTE: for an internal check  
             # if not accum_level_nodes == len(self.model_part.Nodes):
@@ -229,7 +229,6 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
             nodal_forces_local = self.data_comm.ScattervDoubles(data_to_scatter, self.main_rank)
             
             nodal_point_load_val = KratosMultiphysics.Vector(3)            
-            #for c, node_id in enumerate(self.level_forces[l_id]['node_ids_local']): 
             for c, node in enumerate(self.level_forces[l_id]['nodes_local']):                
                 for i in range(nodal_point_load_val.Size()):
                     nodal_point_load_val[i] = nodal_forces_local[c*3 + i]

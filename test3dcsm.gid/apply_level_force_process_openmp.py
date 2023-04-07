@@ -146,7 +146,7 @@ class ApplyLevelForceProcessOpenMP(KratosMultiphysics.Process):
                     if self.level_forces[l_id]['start_coords'][-1] <= node.Z0 and node.Z0 < self.level_forces[l_id]['end_coords'][-1]:
                         self.level_forces[l_id]['nodes'].append(node)
                         self.level_forces[l_id]['node_coords'].append([node.X0, node.Y0, node.Z0])
-                accum_level_nodes += len(self.level_forces[l_id]['node_ids'])       
+                accum_level_nodes += len(self.level_forces[l_id]['nodes'])       
                 #############
                 
                 #############
@@ -204,7 +204,6 @@ class ApplyLevelForceProcessOpenMP(KratosMultiphysics.Process):
                 # apply as in Kratos
                 
                 nodal_point_load_val = KratosMultiphysics.Vector(3)            
-                # for c, node_id in enumerate(self.level_forces[l_id]['node_ids']):
                 for c, node in enumerate(self.level_forces[l_id]['nodes']):
                     for i in range(nodal_point_load_val.Size()):
                         nodal_point_load_val[i] = nodal_forces[c*3 + i]
