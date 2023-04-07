@@ -11,6 +11,7 @@ ERR_REL_TOL = 1e-10
 
 def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=100.0, I=1000.0):
    
+    # internal definitions
     def get_unit_vector(v):
         return v / np.linalg.norm(v)
 
@@ -20,6 +21,16 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
     def get_length(p1, p2):       
         return np.linalg.norm(np.subtract(p2, p1))
     
+    # initial checks
+    if len(nodal_coordinates) == 0:
+        raise Exception("nodal_coordinates has no elements, check algorithm or setup!")
+    elif len(nodal_coordinates) == 1:
+        if get_length(nodal_coordinates[0], nodes_geom_center) < ERR_ABS_TOL:
+            raise Exception("Only one node in nodal_coordinates and this has the same location as nodes_geom_center, check algorithm or setup!")
+        else:
+            raise Warning("Only one node in nodal_coordinates!")
+    
+    # main algorithm
     k_total_global =np.zeros((DOFS_PER_NODE + DIMENSION*len(nodal_coordinates), DOFS_PER_NODE + DIMENSION*len(nodal_coordinates)))
     
     # coord syst
@@ -112,9 +123,10 @@ def setup_fem_beam_analogy(nodal_coordinates, nodes_geom_center, E=10000.0, A=10
                 # upper diagonal
                 k_total_global[j, DOFS_PER_NODE + idx*DIMENSION + i] += k_elem_global[j,DOFS_PER_NODE+i]
 
+    # final checks
     if np.isnan(k_total_global).any():
-        raise Exception("NaN in k_total_global, check algorithm!")
-    
+        raise Exception("NaN in k_total_global, check algorithm or setup!")
+        
     return k_total_global
 
 def map_forces_to_nodes(stiffness_matrix, target_resultants):
@@ -128,7 +140,7 @@ def map_forces_to_nodes(stiffness_matrix, target_resultants):
     # solved by reduction, only the center node is unconstrained
     
     ########
-    # solve
+    # solve   
     center_node_deformations = np.linalg.solve(stiffness_matrix[:DOFS_PER_NODE,:DOFS_PER_NODE], target_resultants)
     
     # setup the deformation vector - apart from the center node deformations
