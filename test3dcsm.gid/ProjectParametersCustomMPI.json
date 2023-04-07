@@ -50,34 +50,8 @@
                 "value"           : [0.0,0.0,0.0]
             }
         }],
-        "loads_process_list"       : [
-        //     {
-        //     "python_module" : "assign_vector_by_direction_to_condition_process",
-        //     "kratos_module" : "KratosMultiphysics",
-        //     "check"         : "DirectorVectorNonZero direction",
-        //     "process_name"  : "AssignVectorByDirectionToConditionProcess",
-        //     "Parameters"    : {
-        //         "model_part_name" : "Structure.PointLoad3D_structure",
-        //         "variable_name"   : "POINT_LOAD",
-        //         "interval"        : [0.0,"End"],
-        //         "modulus"         : "15.0*z*t",
-        //         "direction"       : [1.0,2.0,0.0]
-        //     }
-        // }
-        ],
+        "loads_process_list"       : [],
         "list_other_processes"     : [
-            // MP NOTE: test this sequency for automatic generation of the processes 
-            // without remeshing and assigning dummy values in
-            // {
-            //     "python_module" : "create_point_based_entites_process",
-            //     "kratos_module"  : "KratosMultiphysics.CoSimulationApplication.processes",
-            //     "Parameters"    : {
-            //         "model_part_name"      : "Structure",
-            //         "new_sub_model_part_name" : "PointLoad3D_structure",
-            //         "entity_name"              : "PointLoadCondition3D1N",
-            //         "entity_type"              : "condition"
-            //     }
-            // },
         // als MPI
         {
             "python_module" : "apply_level_force_process_mpi",
