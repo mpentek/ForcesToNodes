@@ -132,9 +132,11 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
             #############
                 
         # on rank 0
-        if (self.model_part.GetCommunicator().MyPID() == self.main_rank):  
+        # if (self.model_part.GetCommunicator().MyPID() == self.main_rank):  
+        if (self.data_comm.Rank() == self.main_rank):  
             # initialize the stiffness_matrix only on the main rank       
             for l_id in range(self.nr_input_intervals): 
+                
                 #############
                 # initialize mapping matrix using the FEM analogy
                 # computed on each rank - has to be the same
@@ -142,6 +144,7 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
                 # was previously flattened so need reshape
                 # as the setup_fem_beam_analogy requires a specific format
                 self.level_forces[l_id]['stacked_node_coords_global'] = self.level_forces[l_id]['node_coords_global'].reshape((int(self.level_forces[l_id]['node_coords_global'].shape[0]/3),3))
+                
                 # self.level_forces[l_id]['stiffness_matrix'] = setup_fem_beam_analogy(self.level_forces[l_id]['node_coords_global'],
                 self.level_forces[l_id]['stiffness_matrix'] = setup_fem_beam_analogy(self.level_forces[l_id]['stacked_node_coords_global'], 
                                                                                 self.level_forces[l_id]['center_coords']) 
