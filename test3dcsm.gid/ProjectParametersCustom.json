@@ -1,7 +1,7 @@
 {
     "problem_data"     : {
         "problem_name"  : "test3dcsm",
-        "parallel_type" : "MPI",
+        "parallel_type" : "OpenMP", // OR "MPI",
         "echo_level"    : 1,
         "start_time"    : 0.0,
         "end_time"      : 0.5
@@ -52,10 +52,9 @@
         }],
         "loads_process_list"       : [],
         "list_other_processes"     : [
-        // als MPI
         {
-            "python_module" : "apply_level_force_process_mpi",
-            "process_name"  : "ApplyLevelForceProcessMPI",
+            "python_module" : "apply_level_force_process",
+            "process_name"  : "ApplyLevelForceProcess",
             "Parameters"    : {
                 "model_part_name" : "Structure.PointLoad3D_structure", 
                 "input_folder" : "ascii_input",
@@ -67,7 +66,7 @@
                 "swap_sign" : true,
                 "write_output_file"     : true,
                 "output_file_settings": {
-                     "output_path": "ascii_output_mpi"
+                     "output_path": "ascii_output"
                 }
             }
         }
