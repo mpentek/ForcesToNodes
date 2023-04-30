@@ -11,9 +11,9 @@ def Factory(params, Model):
     if(type(params) != KratosMultiphysics.Parameters):
         raise Exception(
             'expected input shall be a Parameters object, encapsulating a json string')
-    return ApplyLevelForceProcessMPI(Model, params["Parameters"])
+    return ApplyLevelForceProcess(Model, params["Parameters"])
 
-class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
+class ApplyLevelForceProcess(KratosMultiphysics.Process):
     '''
     Assign level forces and recovers them (body-attached forces)
     for a model part with the appropriate 1D condition for POINT_LOAD
@@ -37,7 +37,8 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
                 "print_format"          : ".8f",
                 "print_to_screen"       : true,
                 "write_output_file"     : true,
-                "output_file_settings"  : {}
+                "output_file_settings"  : {},
+                "main_rank" : 0
             }
             """)
 
@@ -71,7 +72,7 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
         self.format = params["print_format"].GetString()
 
         #############
-        self.main_rank = 0
+        self.main_rank = params['main_rank'].GetInt()
         self.data_comm = self.model_part.GetCommunicator().GetDataCommunicator()
                 
         #############
@@ -114,7 +115,7 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
             # by filtering Z coordinates - here along the height
             self.level_forces[l_id]['nodes_local'] = []
             self.level_forces[l_id]['node_coords_local'] = []
-            for node in self.model_part.Nodes:
+            for node in self.model_part.GetCommunicator().LocalMesh().Nodes:
                 if self.level_forces[l_id]['start_coords'][-1] <= node.Z0 and node.Z0 < self.level_forces[l_id]['end_coords'][-1]:
                     self.level_forces[l_id]['nodes_local'].append(node)
                     self.level_forces[l_id]['node_coords_local'].append([node.X0, node.Y0, node.Z0])
@@ -124,15 +125,6 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
             # NOTE using numpy a.flatten()
             self.level_forces[l_id]['node_coords_global'] = np.array(np.concatenate(self.data_comm.GathervDoubles(np.array(self.level_forces[l_id]['node_coords_local']).flatten(), self.main_rank)))
 
-            #accum_level_nodes += len(self.level_forces[l_id]['nodes'])       
-            
-            # # NOTE: for an internal check  
-            # if not accum_level_nodes == len(self.model_part.Nodes):
-            #     raise Exception('Mismatch between accumulated and total number of nodes!')
-            #############
-                
-        # on rank 0
-        # if (self.model_part.GetCommunicator().MyPID() == self.main_rank):  
         if (self.data_comm.Rank() == self.main_rank):  
             # initialize the stiffness_matrix only on the main rank       
             for l_id in range(self.nr_input_intervals): 
@@ -201,9 +193,8 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
         step = self.model_part.ProcessInfo[KratosMultiphysics.STEP]
         
         #############
-        # on rank 0
         for l_id in range(self.nr_input_intervals):
-            if (self.model_part.GetCommunicator().MyPID() == self.main_rank):
+            if (self.data_comm.Rank() == self.main_rank):
                 #############
                 # initialize level force input
                 # NOTE: we might want to use a ramp-up function of the force input
@@ -242,7 +233,7 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
         for l_id in range(self.nr_input_intervals):
             fb, mb = self._EvaluateLevelForces(l_id)
 
-            if (self.model_part.GetCommunicator().MyPID() == 0):
+            if (self.data_comm.Rank() == self.main_rank):
                 output = []
                 output.extend(fb)
                 output.extend(mb)
@@ -273,7 +264,7 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
 
     def ExecuteFinalize(self):
         '''Close output files.'''
-        if (self.model_part.GetCommunicator().MyPID() == 0):
+        if (self.data_comm.Rank() == self.main_rank):
             for l_id in range(len(self.level_forces)):
                 self.level_forces[l_id]['output_file'].close()
 
@@ -302,8 +293,8 @@ class ApplyLevelForceProcessMPI(KratosMultiphysics.Process):
             mb[1] += z * nodal_force[0] - x * nodal_force[2]
             mb[2] += x * nodal_force[1] - y * nodal_force[0]
 
-        fb = self.model_part.GetCommunicator().GetDataCommunicator().SumDoubles(fb,0)
-        mb = self.model_part.GetCommunicator().GetDataCommunicator().SumDoubles(mb,0)
+        fb = self.data_comm.SumDoubles(fb,0)
+        mb = self.data_comm.SumDoubles(mb,0)
 
         return fb, mb
 
